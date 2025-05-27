@@ -1,7 +1,7 @@
 # Stream Deck ESP32
 
 
-#/!\Disclaimer : Projet en cours, il subira des changements c'est normal si tout ne fonctionne pas
+# /!\Disclaimer : Projet en cours, il subira des changements c'est normal si tout ne fonctionne pas
 Ce projet met en oeuvre un "stream deck" basé sur un ESP32 avec un écran tactile ILI9341 et plusieurs boutons physiques. L'ESP32 envoie des commandes textuelles au PC via la liaison série. Un script Python interprète ces commandes et exécute les raccourcis clavier correspondants.
 
 ## Contenu du dépôt
