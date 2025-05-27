@@ -8,7 +8,7 @@ Ce projet met en oeuvre un "stream deck" basé sur un ESP32 avec un écran tacti
 
 - `streamdeck.ino` : programme Arduino pour l'ESP32. Il gère les menus affichés sur l'écran tactile et l'envoi de commandes série lorsque l'utilisateur appuie sur un bouton ou touche l'écran.
 - `streamdeck_listener.py` : script Python qui attend les messages de l'ESP32 sur le port série. Il utilise `pyautogui` pour déclencher des actions sur le PC (contrôle de Spotify, commandes VSCode, etc.).
-- `launch_streamdeck.bat` : script Windows pour lancer facilement `streamdeck_listener.py` depuis le bon répertoire.
+- `launch_streamdeck.bat` : script Windows pour lancer facilement `streamdeck_listener.py` depuis le bon répertoire. Si vous voulez le lancer au démarrage de votre pc il vous suffit d'appuyer sur windows + R et d'entrer : shell:startup, cela vous ouvrira un dossier placez y le fichier .bat
 
 ## Mise en route rapide
 
