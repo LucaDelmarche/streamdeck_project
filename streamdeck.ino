@@ -20,7 +20,7 @@ XPT2046_Touchscreen ts(TOUCH_CS);
 #define BUTTON_H 80
 
 #define NUM_BUTTONS 9
-const int buttonPins[NUM_BUTTONS] = {16, 5, 2, 13, 13, 12, 13, 14, 27};
+const int buttonPins[NUM_BUTTONS] = {16, 5, 2, 14, 21, 25, 32, 34, 13};
 
 struct Action {
   const char* label;
@@ -78,7 +78,7 @@ void setup() {
   Serial.begin(115200);
   for (int i = 0; i < NUM_BUTTONS; i++) pinMode(buttonPins[i], INPUT_PULLUP);
   
-  pinMode(SWITCH_PIN, INPUT_PULLUP);  // <-- Ici pour G16
+  // pinMode(SWITCH_PIN, INPUT_PULLUP);  // <-- Ici pour G16
 
   tft.begin();
   ts.begin();
@@ -122,13 +122,13 @@ void showMenu(int index) {
   }
 }
 
-void sendCommand(const char* cmd) {
-  if (strcmp(cmd, "menu_main") == 0) {
-    backToMain();
-  } else {
-    Serial.println(cmd);
-  }
-}
+// void sendCommand(const char* cmd) {
+//   if (strcmp(cmd, "menu_main") == 0) {
+//     backToMain();
+//   } else {
+//     Serial.println(cmd);
+//   }
+// }
 
 void handleTouch() {
   if (!ts.touched()) return;
@@ -147,7 +147,7 @@ void handleTouch() {
       }
     } else {
       const char* cmd = menus[currentMenu].actions[index].command;
-      if (cmd) sendCommand(cmd);
+      // if (cmd) sendCommand(cmd);
     }
   }
   delay(250);
@@ -164,9 +164,10 @@ void handleButtons() {
         showMenu(i);
       } else if (currentMenu != -1) {
         const char* cmd = menus[currentMenu].actions[i].command;
-        if (cmd) sendCommand(cmd);
+        // if (cmd) sendCommand(cmd);
       }
-    Serial.println(buttonPins[i]);
+      if(buttonPins[i] != 34)
+        Serial.println(buttonPins[i]);
     }
   }
 }
