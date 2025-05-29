@@ -1,5 +1,5 @@
-// === Projet Stream Deck ESP32 (WROOM) avec écran tactile et boutons ===
-// Envoie des commandes texte via Serial au PC, à interpréter par un script Python
+// // === Projet Stream Deck ESP32 (WROOM) avec écran tactile et boutons ===
+// // Envoie des commandes texte via Serial au PC, à interpréter par un script Python
 
 #include <SPI.h>
 #include <Adafruit_GFX.h>
@@ -7,12 +7,13 @@
 #include <XPT2046_Touchscreen.h>
 
 #define TFT_CS   15
-#define TFT_DC   2
-#define TFT_RST  4
-#define TOUCH_CS 21
+#define TFT_DC   4
+#define TFT_RST  22
+#define TOUCH_CS 26
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 XPT2046_Touchscreen ts(TOUCH_CS);
+
 
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
@@ -21,7 +22,8 @@ XPT2046_Touchscreen ts(TOUCH_CS);
 
 #define NUM_BUTTONS 9
 const int buttonPins[NUM_BUTTONS] = {16, 5, 2, 14, 21, 25, 32, 34, 13};
-
+unsigned long lastDebounceTimes[NUM_BUTTONS] = {0};
+const unsigned long debounceDelay = 50;  // ms
 struct Action {
   const char* label;
   const char* command;
@@ -85,11 +87,15 @@ void setup() {
   ts.setRotation(1);
   tft.setRotation(1);
   tft.fillScreen(ILI9341_BLACK);
+  tft.setCursor(40, 100);  // position (x, y)
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(3);
+  tft.println("HELLO !");
   showMainMenu();
 }
 
 void showMainMenu() {
-  tft.fillScreen(ILI9341_BLACK);
+  tft.fillScreen(ILI9341_RED);
   for (int i = 0; i < NUM_MENUS && i < 9; i++) {
     int col = i % 3;
     int row = i / 3;
@@ -103,6 +109,7 @@ void showMainMenu() {
     tft.print(menus[i].name);
   }
 }
+
 
 void showMenu(int index) {
   tft.fillScreen(ILI9341_BLACK);
@@ -122,18 +129,12 @@ void showMenu(int index) {
   }
 }
 
-// void sendCommand(const char* cmd) {
-//   if (strcmp(cmd, "menu_main") == 0) {
-//     backToMain();
-//   } else {
-//     Serial.println(cmd);
-//   }
-// }
 
 void handleTouch() {
   if (!ts.touched()) return;
+
   TS_Point p = ts.getPoint();
-  int x = p.y; 
+  int x = p.y;  // adapté pour rotation = 1
   int y = SCREEN_HEIGHT - p.x;
   int col = x / BUTTON_W;
   int row = y / BUTTON_H;
@@ -143,36 +144,49 @@ void handleTouch() {
     if (currentMenu == -1) {
       if (index < NUM_MENUS) {
         currentMenu = index;
+        Serial.println("Menu tactile " + String(menus[index].name) + " activé");
         showMenu(index);
       }
     } else {
       const char* cmd = menus[currentMenu].actions[index].command;
-      // if (cmd) sendCommand(cmd);
+      if (strcmp(cmd, "menu_main") == 0) {
+        Serial.println("Retour au menu principal (tactile)");
+        backToMain();
+      } else if (cmd) {
+        Serial.println("Tactile action: " + String(cmd));
+      }
     }
   }
-  delay(250);
+
+  delay(250);  // anti-rebond tactile
 }
 
 void handleButtons() {
+  unsigned long currentTime = millis();
   for (int i = 0; i < NUM_BUTTONS; i++) {
     if (digitalRead(buttonPins[i]) == LOW) {
-      delay(200);
-      if (currentMenu == -1 && i < NUM_MENUS) {
-        currentMenu = i;
-        Serial.println("Menu " + String(menus[i].name) + " activé");
+      if (currentTime - lastDebounceTimes[i] > debounceDelay) {
+        lastDebounceTimes[i] = currentTime;
 
-        showMenu(i);
-      } else if (currentMenu != -1) {
-        const char* cmd = menus[currentMenu].actions[i].command;
-        // if (cmd) sendCommand(cmd);
+        if (currentMenu == -1 && i < NUM_MENUS) {
+          currentMenu = i;
+          Serial.println("Menu " + String(menus[i].name) + " activé");
+          showMenu(i);
+        } else if (currentMenu != -1) {
+          const char* cmd = menus[currentMenu].actions[i].command;
+                  if (buttonPins[i] != 34)  // Debug
+          Serial.println(String(buttonPins[i]));
       }
-      if(buttonPins[i] != 34)
-        Serial.println(buttonPins[i]);
+        }
+
+
     }
   }
 }
+
 void loop() {
   handleTouch();
   handleButtons();
 
 }
+

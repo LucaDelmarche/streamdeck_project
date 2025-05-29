@@ -1,7 +1,7 @@
 import pyautogui
 import serial
 
-ser = serial.Serial('COM8', 115200)
+ser = serial.Serial('COM3', 115200)
 print("En attente de commandes ESP32...")
 
 while True:
@@ -9,7 +9,7 @@ while True:
 
     print("Commande reçue :", line)
 
-    if line == "spotify_playpause":
+    if line == "16":
         pyautogui.press("space")
     elif line == "spotify_next":
         pyautogui.hotkey("ctrl", "right")
