@@ -1,7 +1,7 @@
 import pyautogui
 import serial
 
-ser = serial.Serial('COM3', 115200)
+ser = serial.Serial('COM8', 115200)
 print("En attente de commandes ESP32...")
 
 while True:
