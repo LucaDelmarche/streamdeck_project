@@ -1,28 +1,27 @@
-import pyautogui
+import keyboard
 import serial
 
-ser = serial.Serial('COM8', 115200)
+ser = serial.Serial('COM8', 115200, timeout=1)  # Timeout en secondes
 print("En attente de commandes ESP32...")
 
 while True:
+    print("En attente de données...")
     line = ser.readline().decode('utf-8', errors='ignore').strip()
-
     print("Commande reçue :", line)
 
-    if line == "16":
-        pyautogui.press("space")
-    elif line == "spotify_next":
-        pyautogui.hotkey("ctrl", "right")
-    elif line == "spotify_prev":
-        pyautogui.hotkey("ctrl", "left")
+    if line == "0":
+        keyboard.send("play/pause media")
+    elif line == "1":
+        keyboard.send("next track")
+    elif line == "2":
+        keyboard.send("previous track")
     elif line == "vscode_build":
-        pyautogui.press("f7")
+        keyboard.send("f7")
     elif line == "vscode_run":
-        pyautogui.press("f5")
+        keyboard.send("f5")
     elif line == "vscode_terminal":
-        pyautogui.hotkey("ctrl", "`")
+        keyboard.send("ctrl+`")
     elif line == "vscode_find":
-        pyautogui.hotkey("ctrl", "f")
+        keyboard.send("ctrl+f")
     elif line == "vscode_comment":
-        pyautogui.hotkey("ctrl", "k")
-        pyautogui.hotkey("ctrl", "c")
+        keyboard.send("ctrl+k, ctrl+c")  # enchaîne les deux
