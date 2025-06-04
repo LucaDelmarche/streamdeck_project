@@ -5,18 +5,22 @@ ser = serial.Serial('COM8', 115200, timeout=1)  # Timeout en secondes
 print("En attente de commandes ESP32...")
 
 while True:
-    print("En attente de données...")
     line = ser.readline().decode('utf-8', errors='ignore').strip()
     print("Commande reçue :", line)
 
-    if line == "0":
-        keyboard.send("play/pause media")
-    elif line == "1":
-        keyboard.send("next track")
-    elif line == "2":
+    if line == "0_0":
         keyboard.send("previous track")
-    elif line == "vscode_build":
-        keyboard.send("f7")
+    elif line == "0_1":
+        keyboard.send("play/pause media")
+    elif line == "0_2":
+        keyboard.send("next track")
+    elif line == "0_3":
+        keyboard.send("volume up")
+    elif line == "0_4":
+        keyboard.send("volume down")
+    elif line == "0_5":
+        keyboard.send("volume mute")
+
     elif line == "vscode_run":
         keyboard.send("f5")
     elif line == "vscode_terminal":
