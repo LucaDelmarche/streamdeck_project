@@ -2,6 +2,7 @@ import os
 import subprocess
 import threading
 import time
+from os.path import expanduser
 
 import keyboard
 import pyautogui
@@ -68,7 +69,7 @@ exe_games = {
     "5_3": "", #Content manager
     "5_1": "", #F1 24
     "5_2": "", #Jedi survivor
-    "5_5": "C:\\Users\\lucad\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Lunar Client.lnk", #Lunar client
+    "5_5": expanduser("~\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Lunar Client.lnk"), #Lunar client
 }
 vs_commands = {
     "1_0": "code --folder-uri vscode-remote://wsl+ubuntu/mnt/c/Rootly/git/qsbridge-bk",
