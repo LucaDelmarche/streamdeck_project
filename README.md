@@ -1,20 +1,48 @@
-# Stream Deck ESP32
+# ESP32 Stream Deck
 
+This project implements a DIY stream deck using an ESP32 with an ILI9341 touch display and physical buttons. The board communicates with a host computer over serial to execute keyboard shortcuts and can display system information fetched from a local Flask server.
 
-# /!\Disclaimer : Projet en cours, il subira des changements c'est normal si tout ne fonctionne pas
-Ce projet met en oeuvre un "stream deck" basé sur un ESP32 avec un écran tactile ILI9341 et plusieurs boutons physiques. L'ESP32 envoie des commandes textuelles au PC via la liaison série. Un script Python interprète ces commandes et exécute les raccourcis clavier correspondants.
+## Repository layout
 
-## Contenu du dépôt
+- **`streamdeck/streamdeck.ino`** – Arduino sketch for the ESP32. It shows menus on the display, connects to Wi‑Fi, fetches images and system metrics from the server and sends commands over serial.
+- **`server.py`** – Flask application serving a small React frontend, RGB images and system metrics (CPU, GPU, RAM, disk and temperature).
+- **`streamdeck_listener.py`** – Python script listening for commands from the ESP32 and triggering keyboard actions on the PC via `pyautogui`.
+- **`images/`** – RGB565 images displayed on the device (`menu` and `sous_menu` folders).
+- **`Utils/`** – Utility scripts for converting images.
+- **`frontend/`** – Pre‑built React assets served by `server.py`.
 
-- `streamdeck.ino` : programme Arduino pour l'ESP32. Il gère les menus affichés sur l'écran tactile et l'envoi de commandes série lorsque l'utilisateur appuie sur un bouton ou touche l'écran.
-- `streamdeck_listener.py` : script Python qui attend les messages de l'ESP32 sur le port série. Il utilise `pyautogui` pour déclencher des actions sur le PC (contrôle de Spotify, commandes VSCode, etc.).
-- `launch_streamdeck.bat` : script Windows pour lancer facilement `streamdeck_listener.py` depuis le bon répertoire. Si vous voulez le lancer au démarrage de votre pc il vous suffit d'appuyer sur windows + R et d'entrer : shell:startup, cela vous ouvrira un dossier placez y le fichier .bat
+## Installation
 
-## Mise en route rapide
+1. **Clone the repository**
+   ```bash
+   git clone <repo>
+   cd streamdeck_project
+   ```
+2. **Install Python dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. **Create a `.env` file** with any credentials used by `streamdeck_listener.py` (see variable names in the script).
+4. **Upload `streamdeck/streamdeck.ino` to your ESP32** using the Arduino IDE. On first boot the board exposes a Wi‑Fi access point `ESP_Config` allowing you to enter your network credentials and the server address.
+5. **Start the server and the listener**
+   ```bash
+   # In one terminal
+   python server.py
 
-1. Compiler puis téléverser `streamdeck.ino` sur l'ESP32.
-2. Connecter la carte au PC et noter le port série associé (par défaut `COM8` dans le script Python, à adapter).
-3. Installer Python et la bibliothèque `pyautogui`.
-4. Lancer `streamdeck_listener.py` (ou `launch_streamdeck.bat` sous Windows).
+   # In another terminal
+   python streamdeck_listener.py
+   ```
+   On Windows you can use `launch_server.bat` and `launch_streamdeck.bat`.
 
-Une fois en fonctionnement, l'appui sur un bouton ou une zone tactile du stream deck déclenche la commande correspondante sur le PC.
+## Usage
+
+Once everything is running:
+
+- The ESP32 fetches menu images from `server.py` and sends commands through the serial port when a button is pressed or held.
+- `streamdeck_listener.py` interprets these commands and performs keyboard shortcuts or launches applications.
+- Pressing the bottom‑right button toggles a system monitor view on the ESP32 using metrics provided by the Flask server.
+
+Images for the menus are stored in `images/menu` and `images/sous_menu/<menu_number>`; replacing these files lets you customise the interface. Keyboard actions and program launches can be modified directly in `streamdeck_listener.py`.
+
+---
+This repository is a work in progress and may change over time.
