@@ -1,14 +1,34 @@
 import os
+import subprocess
+import threading
 import time
 
 import keyboard
+import pyautogui
 import serial
 from dotenv import load_dotenv
 
-# Chargement du .env
+auto_clicking = False
+auto_clicking_thread = None
+
+def auto_click_loop():
+    while auto_clicking:
+        pyautogui.click()
+        time.sleep(2)
+
+def toggle_auto_click():
+    global auto_clicking, auto_click_thread
+    if not auto_clicking:
+        auto_clicking = True
+        auto_click_thread = threading.Thread(target=auto_click_loop, daemon=True)
+        auto_click_thread.start()
+    else:
+        auto_clicking = False
+        
+# .env loading
 load_dotenv(override=True)
 
-# Récupération des identifiants depuis .env
+# Taking login fields from environment variables
 login_fields = {
     "3_0": os.getenv("GITHUB"),
     "3_1": os.getenv("EA"),
@@ -25,7 +45,7 @@ login_fields = {
     "4_5": os.getenv("BITWARDEN"),
 }
 
-# Fonctions pour remplissage court ou long
+# Long press for password, short press for email
 def fill_email_only(data):
     email = data.replace("'", "").split(",", 1)[0].strip()
     time.sleep(0.5)
@@ -37,7 +57,25 @@ def fill_password(data):
     time.sleep(0.5)
     keyboard.send("enter")
 
-# Commandes système indépendantes
+#Those ids can be found in the URL of the game page on Steam
+# Exemple : https://store.steampowered.com/app/359550/Rainbow_Six_Siege/
+steam_games = {
+    "5_0": "359550", #Rainbow Six Siege
+    "5_4": "3058630", #Assetto Corsa Evolution
+}
+
+exe_games = {
+    "5_3": "", #Content manager
+    "5_1": "", #F1 24
+    "5_2": "", #Jedi survivor
+    "5_5": "C:\\Users\\lucad\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Lunar Client.lnk", #Lunar client
+}
+vs_commands = {
+    "1_0": "code --folder-uri vscode-remote://wsl+ubuntu/mnt/c/Rootly/git/qsbridge-bk",
+    "1_1": "code C:\\Rootly\\git\\qsbridge-ft-revamp",
+}
+# System commands
+# These commands are executed using the keyboard library to simulate key presses
 commandes = {
     "0_0": lambda: keyboard.send("previous track"),
     "0_1": lambda: keyboard.send("play/pause media"),
@@ -45,16 +83,17 @@ commandes = {
     "0_3": lambda: keyboard.send("volume up"),
     "0_4": lambda: keyboard.send("volume down"),
     "0_5": lambda: keyboard.send("volume mute"),
-    "vscode_run": lambda: keyboard.send("f5"),
-    "vscode_terminal": lambda: keyboard.send("ctrl+`"),
-    "vscode_find": lambda: keyboard.send("ctrl+f"),
+    "2_0": lambda: toggle_auto_click(),
+    "1_2": lambda: keyboard.send("f5"),
+    "1_3": lambda: keyboard.send("ctrl+`"),
+    "1_4": lambda: keyboard.send("ctrl+f"),
 }
 
-# Ouverture du port série
-ser = serial.Serial('COM8', 115200, timeout=1)
+# Port configuration
+ser = serial.Serial('COM8', 115200, timeout=1) # COM8 is the port where the ESP32 is connected, adjust as needed
 print("En attente de commandes ESP32...")
 
-# Boucle principale
+# Main loop to listen for commands from the ESP32
 while True:
     try:
         line = ser.readline().decode('utf-8', errors='ignore').strip()
@@ -63,7 +102,7 @@ while True:
 
         print("Commande reçue :", line)
 
-        # Détection clic long
+        # Check if the command is a long press (ends with "_long")
         key = line.replace("_long", "")
         is_long = line.endswith("_long")
 
@@ -77,8 +116,21 @@ while True:
                 fill_password(creds)
             else:
                 fill_email_only(creds)
-
-        # Commandes classiques
+        # Steam games
+        elif key in steam_games:
+            game_id = steam_games[key]
+            subprocess.run(['start', 'steam://rungameid/' + game_id], shell=True)
+        
+        elif key in vs_commands:
+            command = vs_commands[key]
+            subprocess.run(command, shell=True)
+        elif key in exe_games:
+            exe_path = exe_games[key]
+            if exe_path:
+                subprocess.run(f'start "" "{exe_path}"', shell=True)
+            else:
+                print(f"[⚠️] Chemin manquant pour {key}")
+        # Handle system commands
         elif key in commandes:
             commandes[key]()
         else:

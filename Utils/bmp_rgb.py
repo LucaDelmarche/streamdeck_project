@@ -3,8 +3,8 @@ import struct
 from PIL import Image
 
 # === Paramètres ===
-input_file = "5.png"         # Nom du fichier BMP source
-output_file = "5.rgb"       # Nom du fichier de sortie
+input_file = "1.png"         # Nom du fichier BMP source
+output_file = "1.rgb"       # Nom du fichier de sortie
 output_size = (100, 75)                # Taille cible (largeur, hauteur)
 
 # === Conversion ===
