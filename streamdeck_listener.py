@@ -91,7 +91,7 @@ commandes = {
 }
 
 # Port configuration
-ser = serial.Serial('COM8', 115200, timeout=1) # COM8 is the port where the ESP32 is connected, adjust as needed
+ser = serial.Serial('COM3', 115200, timeout=1) # COM8 is the port where the ESP32 is connected, adjust as needed
 print("En attente de commandes ESP32...")
 
 # Main loop to listen for commands from the ESP32
