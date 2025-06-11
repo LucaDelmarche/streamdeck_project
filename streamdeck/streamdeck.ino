@@ -6,7 +6,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
 #include <ArduinoJson.h>
-
+#include <Preferences.h>
 // === Configuration ===
 #define TFT_CS   15
 #define TFT_DC   4
@@ -26,6 +26,7 @@
 #define COLOR_TEMP ILI9341_RED
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
+Preferences prefs;
 
 // === Boutons ===
 const int buttonPins[NUM_BUTTONS] = {16, 17, 12, 25, 21, 14, 32, 34, 13};
@@ -37,7 +38,7 @@ const unsigned long debounceDelay = 50;
 
 // === WiFi Manager ===
 WiFiManager wm;
-WiFiManagerParameter custom_host("host", "Adresse IP du serveur", "192.168.0.22", 32);
+WiFiManagerParameter custom_host("host", "Adresse IP du serveur", "192.168.0.164", 32);
 WiFiManagerParameter custom_port("port", "Port du serveur", "8080", 6);
 
 String serverHost;
@@ -66,25 +67,64 @@ void connectToWiFi() {
   tft.setCursor(10, 10);
   tft.println("Connexion WiFi...");
 
+  // Tenter de lire les paramètres précédemment sauvegardés
+  prefs.begin("config", true);  // mode lecture
+  String savedHost = prefs.getString("host", "");
+  int savedPort = prefs.getInt("port", 0);
+  prefs.end();
+
+  // Si on a un host + port valides, les utiliser directement (et sauter WiFiManager)
+  if (savedHost != "" && savedPort > 0) {
+    WiFi.mode(WIFI_STA);
+    WiFi.begin();
+    unsigned long startTime = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - startTime < 15000) {
+      drawLoadingIndicator((millis() / 250) % 4);
+      delay(250);
+    }
+
+    if (WiFi.status() == WL_CONNECTED) {
+      serverHost = savedHost;
+      serverPort = savedPort;
+
+      tft.fillScreen(ILI9341_BLACK);
+      tft.setTextColor(ILI9341_GREEN);
+      tft.setCursor(10, 10);
+      tft.setTextSize(2);
+      tft.println("WiFi connecte!");
+      tft.setTextSize(1);
+      tft.setCursor(10, 40); tft.print("IP : "); tft.println(WiFi.localIP());
+      tft.setCursor(10, 60); tft.println("SSID : " + WiFi.SSID());
+      delay(3000);
+      return;
+    }
+  }
+
+  // Sinon, portail de configuration
   wm.addParameter(&custom_host);
   wm.addParameter(&custom_port);
   wm.setConfigPortalTimeout(180);
   WiFi.mode(WIFI_STA);
+  wm.resetSettings();
 
-  unsigned long startTime = millis();
-  while (!wm.autoConnect(wifiName.c_str(), wifiPassword.c_str())) {
-    if (millis() - startTime > 20000) {
-      tft.fillScreen(ILI9341_BLACK);
-      tft.setTextColor(ILI9341_RED);
-      tft.setCursor(10, 60);
-      tft.setTextSize(2);
-      tft.println("Connexion echouee!");
-      delay(3000);
-      ESP.restart();
-    }
-    drawLoadingIndicator((millis() / 250) % 4);
-    delay(250);
+  if (!wm.autoConnect(wifiName.c_str(), wifiPassword.c_str())) {
+    tft.fillScreen(ILI9341_BLACK);
+    tft.setTextColor(ILI9341_RED);
+    tft.setCursor(10, 60);
+    tft.setTextSize(2);
+    tft.println("Connexion echouee!");
+    delay(3000);
+    ESP.restart();
   }
+
+  // Connexion OK, récupérer et sauvegarder les paramètres personnalisés
+  serverHost = custom_host.getValue();
+  serverPort = atoi(custom_port.getValue());
+
+  prefs.begin("config", false);  // mode écriture
+  prefs.putString("host", serverHost);
+  prefs.putInt("port", serverPort);
+  prefs.end();
 
   tft.fillScreen(ILI9341_BLACK);
   tft.setTextColor(ILI9341_GREEN);
@@ -93,13 +133,24 @@ void connectToWiFi() {
   tft.println("WiFi connecte!");
   tft.setTextSize(1);
   tft.setCursor(10, 40); tft.print("IP : "); tft.println(WiFi.localIP());
-  tft.setCursor(10, 60); tft.println("SSID : " + wifiName);
-  tft.setCursor(10, 75); tft.println("MDP  : " + wifiPassword);
+  tft.setCursor(10, 60); tft.println("SSID : " + WiFi.SSID());
+  tft.setCursor(10, 75); tft.println("Host : " + serverHost);
   delay(3000);
-
-  serverHost = custom_host.getValue();
-  serverPort = atoi(custom_port.getValue());
 }
+void checkWiFi() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi déconnecté, reconnexion...");
+    WiFi.disconnect();
+    WiFi.begin();
+    unsigned long startAttempt = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 10000) {
+      delay(500);
+      Serial.print(".");
+    }
+    Serial.println(WiFi.status() == WL_CONNECTED ? "Reconnecté!" : "Échec reconnexion");
+  }
+}
+
 
 // === Setup ===
 void setup() {
@@ -147,6 +198,7 @@ void handleButtons() {
             buttonPressStart[i] = now;
           }
           if (buttonPins[i] == 13) {
+            buttonPressStart[i] = now;
             if (currentMenu == -1) {
               monitoringActive = !monitoringActive;
               if (!monitoringActive) backToMain();
@@ -159,11 +211,32 @@ void handleButtons() {
           unsigned long duration = now - buttonPressStart[i];
           buttonPressStart[i] = 0;
 
+          // Action longue sur bouton 13 dans le mode monitoring => reset complet
+          if (monitoringActive && buttonPins[i] == 13 && duration >= 1000) {
+            Serial.println("Reset WiFi + paramètres serveur");
+
+            tft.fillScreen(ILI9341_BLACK);
+            tft.setTextColor(ILI9341_RED);
+            tft.setTextSize(2);
+            tft.setCursor(10, 100);
+            tft.println("RESET EN COURS...");
+            delay(1500);
+
+            Preferences prefs;
+            prefs.begin("config", false);
+            prefs.clear();  // efface host et port
+            prefs.end();
+
+            wm.resetSettings();  // efface SSID + mot de passe
+            ESP.restart();
+          }
+
           if (currentMenu != -1 && buttonPins[i] != 34) {
             String cmd = String(currentMenu) + "_" + String(i);
             if (duration >= 600) cmd += "_long";
             Serial.println(cmd);
           }
+
           if (currentMenu != -1 && buttonPins[i] == 13) {
             backToMain();
           }
@@ -173,6 +246,7 @@ void handleButtons() {
     lastButtonStates[i] = reading;
   }
 }
+
 
 // === Menus ===
 void showMainMenu() {

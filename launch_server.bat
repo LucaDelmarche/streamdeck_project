@@ -1,4 +1,3 @@
-@echo on
-cd "C:\Users\lucad\OneDrive\Documents\Arduino\streamdeck"
+@echo off
+cd "C:\Users\Luca\OneDrive\Documents\Arduino\streamdeck_project"
 python server.py
-pause

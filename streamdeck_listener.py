@@ -63,12 +63,13 @@ def fill_password(data):
 steam_games = {
     "5_0": "359550", #Rainbow Six Siege
     "5_4": "3058630", #Assetto Corsa Evolution
+    "5_6": "1888930", #The last of us part 1
 }
 
 exe_games = {
-    "5_3": "", #Content manager
-    "5_1": "", #F1 24
-    "5_2": "", #Jedi survivor
+    "5_3": "E:\\Content Manager.exe", #Content manager
+    "5_1": "C:\\Program Files\\EA Games\\F1 24\\F1_24.exe", #F1 24
+    "5_2": "G:\\Jedi Survivor\\SwGame\\Binaries\\Win64\\JediSurvivor.exe", #Jedi survivor
     "5_5": expanduser("~\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Lunar Client.lnk"), #Lunar client
 }
 vs_commands = {
@@ -84,6 +85,7 @@ commandes = {
     "0_3": lambda: keyboard.send("volume up"),
     "0_4": lambda: keyboard.send("volume down"),
     "0_5": lambda: keyboard.send("volume mute"),
+    "0_6": lambda:keyboard.send("f8"),
     "2_0": lambda: toggle_auto_click(),
     "1_2": lambda: keyboard.send("f5"),
     "1_3": lambda: keyboard.send("ctrl+`"),

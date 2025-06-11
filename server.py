@@ -45,6 +45,12 @@ def get_metrics():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.after_request
+def add_header(response):
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["Connection"] = "close"
+    return response
+
 @app.route("/images/<path:filename>")
 def serve_rgb(filename):
     return send_from_directory("images", filename)
