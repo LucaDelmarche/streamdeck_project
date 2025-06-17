@@ -44,5 +44,34 @@ Once everything is running:
 
 Images for the menus are stored in `images/menu` and `images/sous_menu/<menu_number>`; replacing these files lets you customise the interface. Keyboard actions and program launches can be modified directly in `streamdeck_listener.py`.
 
+## Component details & customisation
+
+### `streamdeck_listener.py`
+
+Listens on the serial port for commands coming from the ESP32. Each button ID is
+looked up in a few dictionaries:
+
+- `commandes` – media keys and other system shortcuts
+- `steam_games` – maps a button to a Steam game ID (e.g. `359550` for Rainbow
+  Six Siege)
+- `exe_games` – paths to Windows executables to launch
+- `vs_commands` – Visual Studio Code commands or folders
+- `login_fields` – credentials loaded from environment variables
+
+You can personalise the deck by editing these dictionaries. For instance, change
+the value in `steam_games` to start any game from your library.
+
+### `server.py`
+
+Flask server providing the React frontend, RGB images and system metrics. The
+host and port used when running the app can be tweaked at the bottom of this
+file.
+
+### `streamdeck/streamdeck.ino`
+
+Firmware for the ESP32 that draws the menus, handles touch/buttons and sends
+events over serial. On first boot the board exposes an `ESP_Config` Wi‑Fi access
+point which lets you enter your network credentials and the server address.
+
 ---
 This repository is a work in progress and may change over time.
