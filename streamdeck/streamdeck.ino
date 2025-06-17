@@ -1,4 +1,3 @@
-// === Librairies ===
 #include <WiFi.h>
 #include <WiFiManager.h>
 #include <HTTPClient.h>
@@ -7,7 +6,7 @@
 #include <Adafruit_ILI9341.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
-// === Configuration ===
+
 #define TFT_CS   15
 #define TFT_DC   4
 #define TFT_RST  22
@@ -28,7 +27,6 @@
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 Preferences prefs;
 
-// === Boutons ===
 const int buttonPins[NUM_BUTTONS] = {16, 17, 12, 25, 21, 14, 32, 34, 13};
 bool buttonStates[NUM_BUTTONS] = {HIGH};
 bool lastButtonStates[NUM_BUTTONS] = {HIGH};
@@ -36,135 +34,25 @@ unsigned long lastDebounceTimes[NUM_BUTTONS] = {0};
 unsigned long buttonPressStart[NUM_BUTTONS] = {0};
 const unsigned long debounceDelay = 50;
 
-// === WiFi Manager ===
 WiFiManager wm;
 WiFiManagerParameter custom_host("host", "Adresse IP du serveur", "192.168.0.164", 32);
 WiFiManagerParameter custom_port("port", "Port du serveur", "8080", 6);
-
 String serverHost;
 int serverPort;
-String wifiName = "ESP_Config";
-String wifiPassword = "admin123";
 
 String menus[] = {"1","2","3","4","5","6","7","8"};
-const int NUM_MENUS = sizeof(menus) / sizeof(menus[0]);
 int currentMenu = -1;
 bool monitoringActive = false;
 
-// === Fonctions utilitaires ===
-void drawLoadingIndicator(int step) {
-  const char* chars[] = {"/", "-", "\\", "|"};
-  tft.setTextSize(2);
-  tft.setTextColor(ILI9341_YELLOW, ILI9341_BLACK);
-  tft.setCursor(SCREEN_WIDTH - 20, 10);
-  tft.print(chars[step % 4]);
-}
-
-void connectToWiFi() {
-  tft.fillScreen(ILI9341_BLACK);
-  tft.setTextColor(ILI9341_WHITE);
-  tft.setTextSize(2);
-  tft.setCursor(10, 10);
-  tft.println("Connexion WiFi...");
-
-  // Tenter de lire les paramètres précédemment sauvegardés
-  prefs.begin("config", true);  // mode lecture
-  String savedHost = prefs.getString("host", "");
-  int savedPort = prefs.getInt("port", 0);
-  prefs.end();
-
-  // Si on a un host + port valides, les utiliser directement (et sauter WiFiManager)
-  if (savedHost != "" && savedPort > 0) {
-    WiFi.mode(WIFI_STA);
-    WiFi.begin();
-    unsigned long startTime = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - startTime < 15000) {
-      drawLoadingIndicator((millis() / 250) % 4);
-      delay(250);
-    }
-
-    if (WiFi.status() == WL_CONNECTED) {
-      serverHost = savedHost;
-      serverPort = savedPort;
-
-      tft.fillScreen(ILI9341_BLACK);
-      tft.setTextColor(ILI9341_GREEN);
-      tft.setCursor(10, 10);
-      tft.setTextSize(2);
-      tft.println("WiFi connecte!");
-      tft.setTextSize(1);
-      tft.setCursor(10, 40); tft.print("IP : "); tft.println(WiFi.localIP());
-      tft.setCursor(10, 60); tft.println("SSID : " + WiFi.SSID());
-      delay(3000);
-      return;
-    }
-  }
-
-  // Sinon, portail de configuration
-  wm.addParameter(&custom_host);
-  wm.addParameter(&custom_port);
-  wm.setConfigPortalTimeout(180);
-  WiFi.mode(WIFI_STA);
-  wm.resetSettings();
-
-  if (!wm.autoConnect(wifiName.c_str(), wifiPassword.c_str())) {
-    tft.fillScreen(ILI9341_BLACK);
-    tft.setTextColor(ILI9341_RED);
-    tft.setCursor(10, 60);
-    tft.setTextSize(2);
-    tft.println("Connexion echouee!");
-    delay(3000);
-    ESP.restart();
-  }
-
-  // Connexion OK, récupérer et sauvegarder les paramètres personnalisés
-  serverHost = custom_host.getValue();
-  serverPort = atoi(custom_port.getValue());
-
-  prefs.begin("config", false);  // mode écriture
-  prefs.putString("host", serverHost);
-  prefs.putInt("port", serverPort);
-  prefs.end();
-
-  tft.fillScreen(ILI9341_BLACK);
-  tft.setTextColor(ILI9341_GREEN);
-  tft.setCursor(10, 10);
-  tft.setTextSize(2);
-  tft.println("WiFi connecte!");
-  tft.setTextSize(1);
-  tft.setCursor(10, 40); tft.print("IP : "); tft.println(WiFi.localIP());
-  tft.setCursor(10, 60); tft.println("SSID : " + WiFi.SSID());
-  tft.setCursor(10, 75); tft.println("Host : " + serverHost);
-  delay(3000);
-}
-void checkWiFi() {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi déconnecté, reconnexion...");
-    WiFi.disconnect();
-    WiFi.begin();
-    unsigned long startAttempt = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 10000) {
-      delay(500);
-      Serial.print(".");
-    }
-    Serial.println(WiFi.status() == WL_CONNECTED ? "Reconnecté!" : "Échec reconnexion");
-  }
-}
-
-
-// === Setup ===
 void setup() {
   Serial.begin(115200);
-  for (int i = 0; i < NUM_BUTTONS; i++) {
-    pinMode(buttonPins[i], INPUT_PULLUP);
-  }
+  for (int i = 0; i < NUM_BUTTONS; i++) pinMode(buttonPins[i], INPUT_PULLUP);
   tft.begin();
   tft.setRotation(1);
   connectToWiFi();
   showMainMenu();
 }
 
-// === Loop ===
 void loop() {
   handleButtons();
 
@@ -173,30 +61,74 @@ void loop() {
     updateMetricsFromServer();
     lastRefresh = millis();
   }
+
+  static unsigned long lastWiFiCheck = 0;
+  if (millis() - lastWiFiCheck > 30000) {
+    checkWiFi();
+    lastWiFiCheck = millis();
+  }
 }
 
-// === Gestion des boutons ===
+void connectToWiFi() {
+  prefs.begin("config", true);
+  String savedHost = prefs.getString("host", "");
+  int savedPort = prefs.getInt("port", 0);
+  prefs.end();
+
+  if (savedHost != "" && savedPort > 0) {
+    WiFi.mode(WIFI_STA);
+    WiFi.begin();
+    unsigned long startTime = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - startTime < 15000) delay(250);
+    if (WiFi.status() == WL_CONNECTED) {
+      serverHost = savedHost;
+      serverPort = savedPort;
+      return;
+    }
+  }
+  wm.addParameter(&custom_host);
+  wm.addParameter(&custom_port);
+  wm.setConfigPortalTimeout(180);
+  WiFi.mode(WIFI_STA);
+  if (!wm.autoConnect("ESP_Config", "admin123")) ESP.restart();
+  serverHost = custom_host.getValue();
+  serverPort = atoi(custom_port.getValue());
+  prefs.begin("config", false);
+  prefs.putString("host", serverHost);
+  prefs.putInt("port", serverPort);
+  prefs.end();
+}
+
+void checkWiFi() {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi d\u00e9connect\u00e9. Tentative de reconnexion...");
+    WiFi.disconnect();
+    WiFi.begin();
+    unsigned long start = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
+      delay(500);
+      Serial.print(".");
+    }
+    if (WiFi.status() == WL_CONNECTED) Serial.println("Reconnect\u00e9 !");
+    else Serial.println("\u00c9chec reconnexion !");
+  }
+}
+
 void handleButtons() {
   unsigned long now = millis();
-
   for (int i = 0; i < NUM_BUTTONS; i++) {
     int reading = digitalRead(buttonPins[i]);
     if (reading != lastButtonStates[i]) lastDebounceTimes[i] = now;
-
     if ((now - lastDebounceTimes[i]) > debounceDelay) {
       if (reading != buttonStates[i]) {
         buttonStates[i] = reading;
-
         if (buttonStates[i] == LOW) {
-          if (currentMenu == -1 && i < NUM_MENUS && buttonPins[i] != 13 && buttonPins[i] != 34) {
+          if (currentMenu == -1 && i < 8 && buttonPins[i] != 13 && buttonPins[i] != 34) {
             currentMenu = i;
             showMenu(i);
-            buttonPressStart[i] = 0;
             return;
           }
-          if (currentMenu != -1 && buttonPins[i] != 34) {
-            buttonPressStart[i] = now;
-          }
+          if (currentMenu != -1 && buttonPins[i] != 34) buttonPressStart[i] = now;
           if (buttonPins[i] == 13) {
             buttonPressStart[i] = now;
             if (currentMenu == -1) {
@@ -210,36 +142,14 @@ void handleButtons() {
           if (buttonPressStart[i] == 0) continue;
           unsigned long duration = now - buttonPressStart[i];
           buttonPressStart[i] = 0;
-
-          // Action longue sur bouton 13 dans le mode monitoring => reset complet
           if (monitoringActive && buttonPins[i] == 13 && duration >= 1000) {
-            Serial.println("Reset WiFi + paramètres serveur");
-
-            tft.fillScreen(ILI9341_BLACK);
-            tft.setTextColor(ILI9341_RED);
-            tft.setTextSize(2);
-            tft.setCursor(10, 100);
-            tft.println("RESET EN COURS...");
-            delay(1500);
-
-            Preferences prefs;
             prefs.begin("config", false);
-            prefs.clear();  // efface host et port
+            prefs.clear();
             prefs.end();
-
-            wm.resetSettings();  // efface SSID + mot de passe
+            wm.resetSettings();
             ESP.restart();
           }
-
-          if (currentMenu != -1 && buttonPins[i] != 34) {
-            String cmd = String(currentMenu) + "_" + String(i);
-            if (duration >= 600) cmd += "_long";
-            Serial.println(cmd);
-          }
-
-          if (currentMenu != -1 && buttonPins[i] == 13) {
-            backToMain();
-          }
+          if (currentMenu != -1 && buttonPins[i] == 13) backToMain();
         }
       }
     }
@@ -247,11 +157,9 @@ void handleButtons() {
   }
 }
 
-
-// === Menus ===
 void showMainMenu() {
   tft.fillScreen(ILI9341_BLACK);
-  for (int i = 0; i < NUM_MENUS && i < 9; i++) {
+  for (int i = 0; i < 8 && i < 9; i++) {
     int col = i % 3;
     int row = i / 3;
     int x = col * IMG_WIDTH;
@@ -282,21 +190,19 @@ void backToMain() {
   showMainMenu();
 }
 
-// === Images ===
 void drawImageFromURL(const char* filename, int x, int y, int width, int height) {
   char url[128];
   sprintf(url, "http://%s:%d/images/%s", serverHost.c_str(), serverPort, filename);
-
+  Serial.printf("Image: %s\n", url);
   HTTPClient http;
   http.setTimeout(5000);
   http.begin(url);
+  http.addHeader("Connection", "close");
   int httpCode = http.GET();
-
   if (httpCode == HTTP_CODE_OK) {
     WiFiClient* stream = http.getStreamPtr();
     uint16_t* lineBuffer = (uint16_t*)malloc(width * 2);
     if (!lineBuffer) return;
-
     tft.startWrite();
     for (int row = 0; row < height; row++) {
       for (int col = 0; col < width; col++) {
@@ -311,6 +217,7 @@ void drawImageFromURL(const char* filename, int x, int y, int width, int height)
     tft.endWrite();
     free(lineBuffer);
   } else {
+    Serial.printf("Erreur HTTP image: %d\n", httpCode);
     tft.drawRect(x, y, width, height, ILI9341_WHITE);
     tft.setTextColor(ILI9341_WHITE);
     tft.setTextSize(2);
@@ -320,16 +227,23 @@ void drawImageFromURL(const char* filename, int x, int y, int width, int height)
   http.end();
 }
 
-// === Monitoring ===
-void drawBar(int x, int y, int width, int height, int value, uint16_t color, const char* label) {
-  int filled = map(value, 0, 100, 0, height);
-  tft.drawRect(x, y, width, height, ILI9341_WHITE);
-  tft.fillRect(x, y + (height - filled), width, filled, color);
-  tft.setTextSize(1);
-  tft.setTextColor(ILI9341_WHITE);
-  int textX = x + (width / 2) - (strlen(label) * 3);
-  tft.setCursor(textX, y + height + 5);
-  tft.print(label);
+void updateMetricsFromServer() {
+  HTTPClient http;
+  char url[128];
+  sprintf(url, "http://%s:%d/metrics", serverHost.c_str(), serverPort);
+  http.setTimeout(1500);
+  http.begin(url);
+  int httpCode = http.GET();
+  if (httpCode == HTTP_CODE_OK) {
+    String payload = http.getString();
+    StaticJsonDocument<256> doc;
+    if (!deserializeJson(doc, payload)) {
+      showSystemMonitor(doc["cpu"], doc["gpu"], doc["ram"], doc["disk"], doc["temp"]);
+    }
+  } else {
+    Serial.printf("Erreur HTTP metrics: %d\n", httpCode);
+  }
+  http.end();
 }
 
 void showSystemMonitor(int cpu, int gpu, int ram, int disk, int temp) {
@@ -342,30 +256,13 @@ void showSystemMonitor(int cpu, int gpu, int ram, int disk, int temp) {
   drawBar(startX + spacing * 4, topY, barWidth, barHeight, temp, COLOR_TEMP, "TEMP");
 }
 
-void updateMetricsFromServer() {
-  HTTPClient http;
-  char url[128];
-  sprintf(url, "http://%s:%d/metrics", serverHost.c_str(), serverPort);
-  http.setTimeout(1500);
-  http.begin(url);
-  int httpCode = http.GET();
-
-  if (httpCode == HTTP_CODE_OK) {
-    String payload = http.getString();
-    StaticJsonDocument<256> doc;
-    DeserializationError err = deserializeJson(doc, payload);
-    if (!err) {
-      showSystemMonitor(
-        doc["cpu"] | 0,
-        doc["gpu"] | 0,
-        doc["ram"] | 0,
-        doc["disk"] | 0,
-        doc["temp"] | 0
-      );
-    }
-  } else {
-    Serial.print("HTTP Error: ");
-    Serial.println(httpCode);
-  }
-  http.end();
+void drawBar(int x, int y, int width, int height, int value, uint16_t color, const char* label) {
+  int filled = map(value, 0, 100, 0, height);
+  tft.drawRect(x, y, width, height, ILI9341_WHITE);
+  tft.fillRect(x, y + (height - filled), width, filled, color);
+  tft.setTextSize(1);
+  tft.setTextColor(ILI9341_WHITE);
+  int textX = x + (width / 2) - (strlen(label) * 3);
+  tft.setCursor(textX, y + height + 5);
+  tft.print(label);
 }
